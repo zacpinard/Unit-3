@@ -1,0 +1,60 @@
+/* Stylesheet by Zac Pinard, 2023 */
+#map { height: 500px;
+    width: 90%;
+    display: inline-block;
+}
+
+#panel {    
+    width: 16%;    
+    padding: 20px;
+    display: inline-block;
+    vertical-align: top;
+    text-align: center;
+    line-height: 42px;
+}
+
+.sequence-control-container {  
+    width: 350px;  
+    height: 30px;  
+    background-color: rgba(255,255,255,0.8);  
+    padding: 10px;  
+    line-height: 45px;  
+    text-align: center;  
+    border: solid rgb(34, 139, 34) 2px;  
+}  
+
+.legend-control-container {  
+    width: 180px;  
+    height: 80px;  
+    background-color: rgba(255,255,255,0.8);  
+    padding: 15px;  
+    line-height: 1px;  
+    text-align: center;  
+    border: solid rgb(34, 139, 34) 2px;
+}
+
+.range-slider {  
+    width: 250px;  
+}  
+
+.step {  
+    width: 40px;  
+}  
+
+.step img {  
+    width: 100%;  
+    height: auto;  
+} 
+
+#forward {
+    float: right;
+    }
+    
+#reverse {  
+    float: left;  
+}
+
+/*Example 2.3: Adjusting popup content margins in style.css */
+.leaflet-popup-content p {
+    margin: 0.2em 0;
+}
