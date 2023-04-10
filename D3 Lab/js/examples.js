@@ -424,3 +424,55 @@ var circles = container.selectAll(".circles") //create an empty selection
         .text(function(d){
             return "Pop. " + format(d.population); //use format generator to format numbers
         });
+
+
+
+
+//Activity 9
+
+//Example 1.3: Loading data streams with Promise.all() in main.js
+//begin script when window loads
+window.onload = setMap();
+
+//set up choropleth map
+function setMap(){
+    //use Promise.all to parallelize asynchronous data loading
+    var promises = [d3.csv("data/unitsData.csv"),                    
+                    d3.json("data/EuropeCountries.topojson"),                    
+                    d3.json("data/FranceRegions.topojson")                   
+                    ];    
+    Promise.all(promises).then(callback);
+};
+
+//Example 1.4: Adding a callback to setMap() in main.js
+//Example 1.3 line 4...set up choropleth map
+function setMap(){
+    //use Promise.all to parallelize asynchronous data loading
+    var promises = [d3.csv("data/unitsData.csv"),                    
+                    d3.json("data/EuropeCountries.topojson"),                    
+                    d3.json("data/FranceRegions.topojson")                   
+                    ];    
+        Promise.all(promises).then(callback);    
+
+        function callback(data){    
+            csvData = data[0];    
+            europe = data[1];    
+            france = data[2];
+            console.log(csvData);
+            console.log(europe);
+            console.log(france);    
+        };
+};
+
+//Example 1.5: Converting TopoJSON to GeoJSON in main.js
+function callback(data){        
+    //...
+
+//translate europe TopoJSON
+var europeCountries = topojson.feature(europe, europe.objects.EuropeCountries),
+    franceRegions = topojson.feature(france, france.objects.FranceRegions);
+
+//examine the results
+console.log(europeCountries);
+console.log(franceRegions);
+};
