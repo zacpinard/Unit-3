@@ -1,5 +1,39 @@
 /* Stylesheet by Zac Pinard, 2023 */
 
+/* Styling country borders in style.css */
+.countries {
+    fill: #FFD580;
+    stroke: #D27D2D;
+    stroke-width: 2px;
+}
+
+.parks {
+    fill: #7CFC00;
+    stroke: #228B22;
+    stroke-width: 2px;
+}
+
+.gratLines {
+    fill: none;
+    stroke: #999;
+    stroke-width: 1px;
+}
+
+.gratBackground {
+    fill: #D5E3FF;
+}
+
+.map {
+    border: medium solid #355E3B;
+    border-width: 5px;
+}
+
+
+
+
+
+
+
 .axis path,
 .axis line {
     fill: none;
