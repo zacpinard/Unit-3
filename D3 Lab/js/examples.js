@@ -612,3 +612,538 @@ function callback(data){
 .map {
     border: medium solid #999;
 } */
+
+//Example 1.1: Joining CSV data to GeoJSON enumeration units in main.js
+    //translate europe and France TopoJSONs
+    var europeCountries = topojson.feature(europe, europe.objects.EuropeCountries),
+                franceRegions = topojson.feature(france, france.objects.FranceRegions).features;
+
+    //variables for data join
+    var attrArray = ["varA", "varB", "varC", "varD", "varE"];
+
+    //loop through csv to assign each set of csv attribute values to geojson region
+    for (var i=0; i<csvData.length; i++){
+        var csvRegion = csvData[i]; //the current region
+        var csvKey = csvRegion.adm1_code; //the CSV primary key
+
+        //loop through geojson regions to find correct region
+        for (var a=0; a<franceRegions.length; a++){
+
+            var geojsonProps = franceRegions[a].properties; //the current region geojson properties
+            var geojsonKey = geojsonProps.adm1_code; //the geojson primary key
+
+            //where primary keys match, transfer csv data to geojson properties object
+            if (geojsonKey == csvKey){
+
+                //assign all attributes and values
+                attrArray.forEach(function(attr){
+                    var val = parseFloat(csvRegion[attr]); //get csv attribute value
+                    geojsonProps[attr] = val; //assign attribute and value to geojson properties
+                });
+            };
+        };
+    };
+
+//Example 1.2: Defining attrArray and expressed as pseudo-global variables in main.js
+//First line of main.js...wrap everything in a self-executing anonymous function to move to local scope
+(function(){
+
+    //pseudo-global variables
+    var attrArray = ["varA", "varB", "varC", "varD", "varE"]; //list of attributes
+    var expressed = attrArray[0]; //initial attribute
+    
+    //begin script when window loads
+    window.onload = setMap();
+    
+    //... //the rest of the script
+    
+    })(); //last line of main.js
+
+
+    
+//Example 1.3: Subdividing the callback script into multiple functions in main.js
+//set up choropleth map
+function setMap(){
+
+    //...MAP, PROJECTION, PATH, AND QUEUE BLOCKS FROM Week 8
+
+    function callback(data){    
+
+        var csvData = data[0], europe = data[1], france = data[2];
+
+        //place graticule on the map
+        setGraticule(map, path);
+
+        //translate europe and France TopoJSONs
+        var europeCountries = topojson.feature(europe, europe.objects.EuropeCountries),
+            franceRegions = topojson.feature(france, france.objects.FranceRegions).features;
+
+        //add Europe countries to map
+        var countries = map.append("path")
+            .datum(europeCountries)
+            .attr("class", "countries")
+            .attr("d", path);
+
+        //join csv data to GeoJSON enumeration units
+        franceRegions = joinData(franceRegions, csvData);
+
+        //add enumeration units to the map
+        setEnumerationUnits(franceRegions, map, path);
+    };
+}; //end of setMap()
+
+function setGraticule(map, path){
+    //...GRATICULE BLOCKS FROM Week 8
+};
+
+function joinData(franceRegions, csvData){
+    //...DATA JOIN LOOPS FROM EXAMPLE 1.1
+
+    return franceRegions;
+};
+
+function setEnumerationUnits(franceRegions, map, path){
+    //...REGIONS BLOCK FROM Week 8
+};
+
+/*Unused Examples:
+Example 1.4: Creating the quantile color scale generator in main.js
+        //create the color scale
+        var colorScale = makeColorScale(csvData);
+
+        //Example 1.3 line 24...add enumeration units to the map
+        setEnumerationUnits(franceRegions, map, path, colorScale);
+    };
+}; //end of setMap()
+
+//...EXAMPLE 1.3 LINES 29-41
+
+//function to create color scale generator
+function makeColorScale(data){
+    var colorClasses = [
+        "#D4B9DA",
+        "#C994C7",
+        "#DF65B0",
+        "#DD1C77",
+        "#980043"
+    ];
+
+    //create color scale generator
+    var colorScale = d3.scaleQuantile()
+        .range(colorClasses);
+
+    //build array of all values of the expressed attribute
+    var domainArray = [];
+    for (var i=0; i<data.length; i++){
+        var val = parseFloat(data[i][expressed]);
+        domainArray.push(val);
+    };
+
+    //assign array of expressed values as scale domain
+    colorScale.domain(domainArray);
+
+    return colorScale;
+};
+
+
+Example 1.5: Creating an equal interval color scale generator in main.js
+//Example 1.4 line 11...function to create color scale generator
+function makeColorScale(data){
+    var colorClasses = [
+        "#D4B9DA",
+        "#C994C7",
+        "#DF65B0",
+        "#DD1C77",
+        "#980043"
+    ];
+
+    //create color scale generator
+    var colorScale = d3.scaleQuantile()
+        .range(colorClasses);
+
+    //build two-value array of minimum and maximum expressed attribute values
+    var minmax = [
+        d3.min(data, function(d) { return parseFloat(d[expressed]); }),
+        d3.max(data, function(d) { return parseFloat(d[expressed]); })
+    ];
+    //assign two-value array as scale domain
+    colorScale.domain(minmax);
+
+    return colorScale;
+};
+*/
+
+
+
+//Example 1.6: Creating a Natural Breaks color scale generator in main.js
+//function to create color scale generator
+function makeColorScale(data){
+    var colorClasses = [
+        "#D4B9DA",
+        "#C994C7",
+        "#DF65B0",
+        "#DD1C77",
+        "#980043"
+    ];
+
+    //create color scale generator
+    var colorScale = d3.scaleThreshold()
+        .range(colorClasses);
+
+    //build array of all values of the expressed attribute
+    var domainArray = [];
+    for (var i=0; i<data.length; i++){
+        var val = parseFloat(data[i][expressed]);
+        domainArray.push(val);
+    };
+
+    //cluster data using ckmeans clustering algorithm to create natural breaks
+    var clusters = ss.ckmeans(domainArray, 5);
+    //reset domain array to cluster minimums
+    domainArray = clusters.map(function(d){
+        return d3.min(d);
+    });
+    //remove first value from domain array to create class breakpoints
+    domainArray.shift();
+
+    //assign array of last 4 cluster minimums as domain
+    colorScale.domain(domainArray);
+
+    return colorScale;
+};
+
+//Example 1.7: Coloring enumeration units in main.js
+//Example 1.3 line 38
+function setEnumerationUnits(franceRegions, map, path, colorScale){
+
+    //add France regions to map
+    var regions = map.selectAll(".regions")
+        .data(franceRegions)
+        .enter()
+        .append("path")
+        .attr("class", function(d){
+            return "regions " + d.properties.adm1_code;
+        })
+        .attr("d", path)
+        .style("fill", function(d){
+            return colorScale(d.properties[expressed]);
+        });
+};
+
+//Example 1.8: Checking for values when setting fill in main.js
+function setEnumerationUnits(franceRegions,map,path,colorScale){    
+    //add France regions to map    
+    var regions = map.selectAll(".regions")        
+        .data(franceRegions)        
+        .enter()        
+        .append("path")        
+        .attr("class", function(d){            
+            return "regions " + d.properties.adm1_code;        
+        })        
+        .attr("d", path)        
+            .style("fill", function(d){            
+                var value = d.properties[expressed];            
+                if(value) {                
+                    return colorScale(d.properties[expressed]);            
+                } else {                
+                    return "#ccc";            
+                }    
+        });
+    }
+
+
+/* Example 1.9: Adding a border to enumeration units in style.css
+.regions {
+    stroke: #000;
+    stroke-width: 0.5px;
+    stroke-linecap: round;
+}
+*/
+
+//Example 2.1: Creating the bar chart container in main.js
+        //Example 1.4 line 4...add enumeration units to the map
+        setEnumerationUnits(franceRegions, map, path, colorScale);
+
+        //add coordinated visualization to the map
+        setChart(csvData, colorScale);
+    //};
+//}; //end of setMap()
+
+//...
+
+//function to create coordinated bar chart
+function setChart(csvData, colorScale){
+    //chart frame dimensions
+    var chartWidth = 550,
+        chartHeight = 460;
+
+    //create a second svg element to hold the bar chart
+    var chart = d3.select("body")
+        .append("svg")
+        .attr("width", chartWidth)
+        .attr("height", chartHeight)
+        .attr("class", "chart");
+};
+
+//Example 2.2: Setting responsive map and chart widths in main.js
+//Example 1.3 line 2...set up choropleth map
+function setMap(){
+    //map frame dimensions
+    var width = window.innerWidth * 0.5,
+        height = 460;
+
+//...
+}
+//Example 2.1 line 11...function to create coordinated bar chart
+function setChart(csvData, colorScale){
+    //chart frame dimensions
+    var chartWidth = window.innerWidth * 0.425,
+        chartHeight = 460;
+    
+//...
+}
+
+/*Example 2.3: Adding a map frame margin and chart frame styles in style.css
+.map {
+    border: medium solid #999;
+    margin: 10px 0 0 20px;
+}
+
+.chart {
+    background-color: rgba(128,128,128,.2);
+    border: medium solid #999;
+    float: right;
+    margin: 10px 20px 0 0;
+}*/
+
+//Example 2.4: Creating bars in main.js
+    //Example 2.1 line 17...create a second svg element to hold the bar chart
+    var chart = d3.select("body")
+        .append("svg")
+        .attr("width", chartWidth)
+        .attr("height", chartHeight)
+        .attr("class", "chart");
+
+    //set bars for each province
+    var bars = chart.selectAll(".bars")
+        .data(csvData)
+        .enter()
+        .append("rect")
+        .attr("class", function(d){
+            return "bars " + d.adm1_code;
+        })
+        .attr("width", chartWidth / csvData.length - 1)
+        .attr("x", function(d, i){
+            return i * (chartWidth / csvData.length);
+        })
+        .attr("height", 460)
+        .attr("y", 0);
+
+//Example 2.5: Setting the bar heights with a linear scale in main.js
+    //create a scale to size bars proportionally to frame
+    var yScale = d3.scaleLinear()
+        .range([0, chartHeight])
+        .domain([0, 105]);
+
+    //Example 2.4 line 8...set bars for each province
+    var bars = chart.selectAll(".bars")
+        .data(csvData)
+        .enter()
+        .append("rect")
+        .attr("class", function(d){
+            return "bars " + d.adm1_code;
+        })
+        .attr("width", chartWidth / csvData.length - 1)
+        .attr("x", function(d, i){
+            return i * (chartWidth / csvData.length);
+        })
+        .attr("height", function(d){
+            return yScale(parseFloat(d[expressed]));
+        })
+        .attr("y", function(d){
+            return chartHeight - yScale(parseFloat(d[expressed]));
+        })
+
+//Example 2.6: Applying the color scale at the end of the bars block in main.js
+        //Example 2.5 line 23...end of bars block
+        //.style("fill", function(d){
+            return colorScale(d[expressed]);
+        //});
+
+//Example 2.7: Sorting attribute values to reorder the bars in main.js
+    //Example 2.5 line 6...set bars for each province
+    var bars = chart.selectAll(".bars")
+        .data(csvData)
+        .enter()
+        .append("rect")
+        .sort(function(a, b){
+            return a[expressed]-b[expressed]
+        })
+        .attr("class", function(d){
+            return "bars " + d.adm1_code;
+        })
+        //...
+
+//Example 2.8: Adding text to the bars in main.js
+    //annotate bars with attribute value text
+    var numbers = chart.selectAll(".numbers")
+        .data(csvData)
+        .enter()
+        .append("text")
+        .sort(function(a, b){
+            return a[expressed]-b[expressed]
+        })
+        .attr("class", function(d){
+            return "numbers " + d.adm1_code;
+        })
+        .attr("text-anchor", "middle")
+        .attr("x", function(d, i){
+            var fraction = chartWidth / csvData.length;
+            return i * fraction + (fraction - 1) / 2;
+        })
+        .attr("y", function(d){
+            return chartHeight - yScale(parseFloat(d[expressed])) + 15;
+        })
+        .text(function(d){
+            return d[expressed];
+        });
+
+/*Example 2.9: Styling attribute value annotation in style.css
+.numbers {
+    fill: white;
+    font-family: sans-serif;
+}*/
+
+//Example 2.10: Adding a dynamic chart title in main.js
+    //below Example 2.8...create a text element for the chart title
+    var chartTitle = chart.append("text")
+        .attr("x", 20)
+        .attr("y", 40)
+        .attr("class", "chartTitle")
+        .text("Number of Variable " + expressed[3] + " in each region");
+
+/*Example 2.11: Chart title styles in style.css
+.chartTitle {
+    font-family: sans-serif;
+    font-size: 1.5em;
+    font-weight: bold;
+}*/
+
+//Example 2.8: Building a bar chart with an axis in main.js
+//function to create coordinated bar chart
+function setChart(csvData, colorScale){
+    //chart frame dimensions
+    var chartWidth = window.innerWidth * 0.425,
+        chartHeight = 473,
+        leftPadding = 25,
+        rightPadding = 2,
+        topBottomPadding = 5,
+        chartInnerWidth = chartWidth - leftPadding - rightPadding,
+        chartInnerHeight = chartHeight - topBottomPadding * 2,
+        translate = "translate(" + leftPadding + "," + topBottomPadding + ")";
+
+    //create a second svg element to hold the bar chart
+    var chart = d3.select("body")
+        .append("svg")
+        .attr("width", chartWidth)
+        .attr("height", chartHeight)
+        .attr("class", "chart");
+
+    //create a rectangle for chart background fill
+    var chartBackground = chart.append("rect")
+        .attr("class", "chartBackground")
+        .attr("width", chartInnerWidth)
+        .attr("height", chartInnerHeight)
+        .attr("transform", translate);
+
+    //create a scale to size bars proportionally to frame and for axis
+    var yScale = d3.scaleLinear()
+        .range([463, 0])
+        .domain([0, 100]);
+
+    //set bars for each province
+    var bars = chart.selectAll(".bar")
+        .data(csvData)
+        .enter()
+        .append("rect")
+        .sort(function(a, b){
+            return b[expressed]-a[expressed]
+        })
+        .attr("class", function(d){
+            return "bar " + d.adm1_code;
+        })
+        .attr("width", chartInnerWidth / csvData.length - 1)
+        .attr("x", function(d, i){
+            return i * (chartInnerWidth / csvData.length) + leftPadding;
+        })
+        .attr("height", function(d, i){
+            return 463 - yScale(parseFloat(d[expressed]));
+        })
+        .attr("y", function(d, i){
+            return yScale(parseFloat(d[expressed])) + topBottomPadding;
+        })
+        .style("fill", function(d){
+            return colorScale(d[expressed]);
+        });
+
+    //create a text element for the chart title
+    var chartTitle = chart.append("text")
+        .attr("x", 40)
+        .attr("y", 40)
+        .attr("class", "chartTitle")
+        .text("Number of Variable " + expressed[3] + " in each region");
+
+    //create vertical axis generator
+    var yAxis = d3.axisLeft()
+        .scale(yScale);
+
+    //place axis
+    var axis = chart.append("g")
+        .attr("class", "axis")
+        .attr("transform", translate)
+        .call(yAxis);
+
+    //create frame for chart border
+    var chartFrame = chart.append("rect")
+        .attr("class", "chartFrame")
+        .attr("width", chartInnerWidth)
+        .attr("height", chartInnerHeight)
+        .attr("transform", translate);
+};
+
+/*Example 2.13: Styles for bar chart with axis in style.css
+.chart {
+    float: right;
+    margin: 7px 20px 0 0;
+}
+
+.chartTitle {
+    font-family: sans-serif;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.chartBackground {
+    fill: rgba(128,128,128,.2);
+}
+
+.chartFrame {
+    fill: none;
+    stroke: #999;
+    stroke-width: 3px;
+    shape-rendering: crispEdges;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: #999;
+    stroke-width: 1px;
+    shape-rendering: crispEdges;
+}
+
+.axis text {
+    font-family: sans-serif;
+    font-size: 0.8em;
+    fill: #999;
+}*/
