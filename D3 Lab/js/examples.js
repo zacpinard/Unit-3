@@ -1447,3 +1447,174 @@ function highlight(props){
         .on("mouseover", function(event, d){
             highlight(d);
         });
+
+//Example 2.3: Adding <desc> elements with style descriptors in main.js
+    //below Example 2.2 line 16...add style descriptor to each path
+    var desc = regions.append("desc")
+        .text('{"stroke": "#000", "stroke-width": "0.5px"}');
+
+    //...
+
+    //below Example 2.2 line 31...add style descriptor to each rect
+    var desc = bars.append("desc")
+        .text('{"stroke": "none", "stroke-width": "0px"}');
+
+//Example 2.4: Adding a dehighlight() function in main.js
+//function to reset the element style on mouseout
+function dehighlight(props){
+    var selected = d3.selectAll("." + props.adm1_code)
+        .style("stroke", function(){
+            return getStyle(this, "stroke")
+        })
+        .style("stroke-width", function(){
+            return getStyle(this, "stroke-width")
+        });
+
+    function getStyle(element, styleName){
+        var styleText = d3.select(element)
+            .select("desc")
+            .text();
+
+        var styleObject = JSON.parse(styleText);
+
+        return styleObject[styleName];
+    };
+    //...remove info label
+    d3.select(".infolabel")
+        .remove();
+};
+
+//Example 2.5: Adding mouseout event listeners in main.js
+        //Example 2.2 line 12...regions event listeners
+    var regions = map.selectAll(".regions")
+        .on("mouseover", function(event, d){
+            highlight(d.properties);
+        })
+        .on("mouseout", function(event, d){
+            dehighlight(d.properties);
+        });
+
+        //...
+
+        //Example 2.2 line 30...bars event listeners
+    var bars = chart.selectAll(".bar")
+        .on("mouseover", function(event, d){
+            highlight(d);
+        })
+        .on("mouseover", function(event, d){
+            dehighlight(d);
+        });
+
+//Example 2.6: Creating the dynamic label in main.js
+//function to create dynamic label
+function setLabel(props){
+    //label content
+    var labelAttribute = "<h1>" + props[expressed] +
+        "</h1><b>" + expressed + "</b>";
+
+    //create info label div
+    var infolabel = d3.select("body")
+        .append("div")
+        .attr("class", "infolabel")
+        .attr("id", props.adm1_code + "_label")
+        .html(labelAttribute);
+
+    var regionName = infolabel.append("div")
+        .attr("class", "labelname")
+        .html(props.name);
+};
+
+//Example 2.7: Removing the info label on dehighlight in main.js
+    //below Example 2.4 line 21...remove info label
+    d3.select(".infolabel")
+        .remove();
+
+
+/*Example 2.8: Label styles in style.css
+.infolabel {
+    position: absolute;
+    height: 50px;
+    min-width: 100px;
+    color: #fff;
+    background-color: #000;
+    border: solid thin #fff;
+    padding: 5px 10px;
+}
+
+.infolabel h1 {
+    margin: 0 20px 0 0;
+    padding: 0;
+    display: inline-block;
+    line-height: 1em;
+}*/
+
+//Example 2.8: Adding movement to the info label in main.js
+//function to move info label with mouse
+function moveLabel(){
+    //use coordinates of mousemove event to set label coordinates
+    var x = event.clientX + 10,
+        y = event.clientY - 75;
+
+    d3.select(".infolabel")
+        .style("left", x + "px")
+        .style("top", y + "px");
+};
+
+//Example 2.9. Adding mousemove event listeners in main.js
+        //Example 2.5 line 1...regions event listeners
+    var regions = map.selectAll(".regions")
+        .on("mouseover", function(event, d){
+            highlight(d.properties);
+        })
+        .on("mouseout", function(event, d){
+            dehighlight(d.properties);
+        })
+        .on("mousemove", moveLabel);
+
+        //...
+
+        //Example 2.5 line 11...bars event listeners
+    var bars = chart.selectAll(".bar")
+        .on("mouseover", function(event, d){
+            highlight(d);
+        })
+        .on("mouseover", function(event, d){
+            dehighlight(d);
+        })
+        .on("mousemove", moveLabel);
+
+//Example 2.10: Dynamically switching label position to avoid page overflow in main.js
+//Example 2.8 line 1...function to move info label with mouse
+function moveLabel(){
+    //get width of label
+    var labelWidth = d3.select(".infolabel")
+        .node()
+        .getBoundingClientRect()
+        .width;
+
+    //use coordinates of mousemove event to set label coordinates
+    var x1 = event.clientX + 10,
+        y1 = event.clientY - 75,
+        x2 = event.clientX - labelWidth - 10,
+        y2 = event.clientY + 25;
+
+    //horizontal label coordinate, testing for overflow
+    var x = event.clientX > window.innerWidth - labelWidth - 20 ? x2 : x1; 
+    //vertical label coordinate, testing for overflow
+    var y = event.clientY < 75 ? y2 : y1; 
+
+    d3.select(".infolabel")
+        .style("left", x + "px")
+        .style("top", y + "px");
+};
+
+/*Example 2.11: Adding a default top style to hide the label in style.css
+.infolabel {    margin: 0 20px 0 0;    position: absolute;
+    height: 50px;
+    min-width: 100px;
+    color: #fff;
+    background-color: #000;
+    border: solid thin #fff;
+    padding: 5px 10px;
+    top: -75px;
+}*/
