@@ -1147,3 +1147,303 @@ function setChart(csvData, colorScale){
     font-size: 0.8em;
     fill: #999;
 }*/
+
+//Example 1.1: Adding a dropdown menu in main.js
+//function to create a dropdown menu for attribute selection
+function createDropdown(){
+    //add select element
+    var dropdown = d3.select("body")
+        .append("select")
+        .attr("class", "dropdown");
+
+    //add initial option
+    var titleOption = dropdown.append("option")
+        .attr("class", "titleOption")
+        .attr("disabled", "true")
+        .text("Select Attribute");
+
+    //add attribute name options
+    var attrOptions = dropdown.selectAll("attrOptions")
+        .data(attrArray)
+        .enter()
+        .append("option")
+        .attr("value", function(d){ return d })
+        .text(function(d){ return d });
+};
+
+/*
+Example 1.2: Styling the dropdown in style.css
+.dropdown {
+    position: absolute;
+    top: 30px;
+    left: 40px;
+    z-index: 10;
+    font-family: sans-serif;
+    font-size: 1em;
+    font-weight: bold;
+    padding: 2px;
+    border: 1px solid #999;
+    box-shadow: 2px 2px 4px #999;
+}
+
+option {
+    font-weight: normal;
+}
+*/
+
+//Example 1.3: Pseudo-code for attribute change listener
+// ON USER SELECTION:
+// Step 1. Change the expressed attribute
+// Step 2. Recreate the color scale with new class breaks
+// Step 3. Recolor each enumeration unit on the map
+// Step 4. Sort each bar on the bar chart
+// Step 5. Resize each bar on the bar chart
+// Step 6. Recolor each bar on the bar chart
+
+//Example 1.4: Adding a change listener and handler function in main.js
+//Example 1.1 line 1...function to create a dropdown menu for attribute selection
+function createDropdown(csvData){
+    //add select element
+    var dropdown = d3.select("body")
+        .append("select")
+        .attr("class", "dropdown")
+        .on("change", function(){
+            changeAttribute(this.value, csvData)
+        });
+
+    //OPTIONS BLOCKS FROM EXAMPLE 1.1 LINES 8-19
+};
+
+//dropdown change event handler
+function changeAttribute(attribute, csvData) {
+    //change the expressed attribute
+    expressed = attribute;
+
+    //recreate the color scale
+    var colorScale = makeColorScale(csvData);
+
+    //recolor enumeration units
+    var regions = d3.selectAll(".regions").style("fill", function (d) {
+        var value = d.properties[expressed];
+        if (value) {
+            return colorScale(d.properties[expressed]);
+        } else {
+            return "#ccc";
+        }
+    });
+}
+
+//Example 1.5: Manipulating the chart bars on attribute change in main.js
+//Example 1.4 line 14...dropdown change event handler
+function changeAttribute(attribute, csvData){
+    //change the expressed attribute
+    expressed = attribute;
+
+    //recreate the color scale
+    var colorScale = makeColorScale(csvData);
+
+    //recolor enumeration units
+    var regions = d3.selectAll(".regions")
+        .style("fill", function(d){            
+            var value = d.properties[expressed];            
+            if(value) {                
+                return colorScale(value);            
+            } else {                
+                return "#ccc";            
+            }    
+        });
+    //Sort, resize, and recolor bars
+    var bars = d3.selectAll(".bar")
+        //Sort bars
+        .sort(function(a, b){
+            return b[expressed] - a[expressed];
+        })
+        .attr("x", function(d, i){
+            return i * (chartInnerWidth / csvData.length) + leftPadding;
+        })
+        //resize bars
+        .attr("height", function(d, i){
+            return 463 - yScale(parseFloat(d[expressed]));
+        })
+        .attr("y", function(d, i){
+            return yScale(parseFloat(d[expressed])) + topBottomPadding;
+        })
+        //recolor bars
+        .style("fill", function(d){            
+            var value = d[expressed];            
+            if(value) {                
+                return colorScale(value);            
+            } else {                
+                return "#ccc";            
+            }    
+    });
+};
+
+//Example 1.6: Moving chart variables to make them pseudo-global in main.js:
+//Top of main.js...wrap everything in a self-executing anonymous function to move to local scope
+(function(){
+
+    //pseudo-global variables
+    var attrArray = ["varA", "varB", "varC", "varD", "varE"]; //list of attributes
+    var expressed = attrArray[0]; //initial attribute
+    
+    //chart frame dimensions
+    var chartWidth = window.innerWidth * 0.425,
+        chartHeight = 473,
+        leftPadding = 25,
+        rightPadding = 2,
+        topBottomPadding = 5,
+        chartInnerWidth = chartWidth - leftPadding - rightPadding,
+        chartInnerHeight = chartHeight - topBottomPadding * 2,
+        translate = "translate(" + leftPadding + "," + topBottomPadding + ")";
+    
+    //create a scale to size bars proportionally to frame and for axis
+    var yScale = d3.scaleLinear()
+        .range([463, 0])
+        .domain([0, 110]);
+    
+    //begin script when window loads
+    window.onload = setMap();
+    
+    //...the rest of the script
+})
+
+//Example 1.7: Consolidating repetitive chart script in main.js:
+    //in setChart()...set bars for each province
+    var bars = chart.selectAll(".bar")
+        .data(csvData)
+        .enter()
+        .append("rect")
+        .sort(function(a, b){
+            return b[expressed]-a[expressed]
+        })
+        .attr("class", function(d){
+            return "bar " + d.adm1_code;
+        })
+        .attr("width", chartInnerWidth / csvData.length - 1);
+
+    //CHARTTITLE, YAXIS, AXIS, AND CHARTFRAME BLOCKS
+
+    //set bar positions, heights, and colors
+    updateChart(bars, csvData.length, colorScale);
+; //end of setChart()
+
+    //...
+
+    //in changeAttribute()...Example 1.5 line 15...Sort bars
+    var bars = d3.selectAll(".bar")
+        //Sort bars
+        .sort(function(a, b){
+            return b[expressed] - a[expressed];
+        });
+
+    updateChart(bars, csvData.length, colorScale);
+; //end of changeAttribute()
+
+//function to position, size, and color bars in chart
+function updateChart(bars, n, colorScale){
+    //position bars
+    bars.attr("x", function(d, i){
+            return i * (chartInnerWidth / n) + leftPadding;
+        })
+        //size/resize bars
+        .attr("height", function(d, i){
+            return 463 - yScale(parseFloat(d[expressed]));
+        })
+        .attr("y", function(d, i){
+            return yScale(parseFloat(d[expressed])) + topBottomPadding;
+        })
+        //color/recolor bars
+        .style("fill", function(d){            
+            var value = d[expressed];            
+            if(value) {                
+                return colorScale(value);            
+            } else {                
+                return "#ccc";            
+            }    
+    });
+};
+
+//Example 1.8: Turning the chart title into visual feedback in main.js
+    //at the bottom of updateChart()...add text to chart title
+    var chartTitle = d3.select(".chartTitle")
+        .text("Number of Variable " + expressed[3] + " in each region");
+
+//Example 1.9: Implementing a choropleth transition in main.js
+    //Example 1.5 line 9...recolor enumeration units
+    var regions = d3.selectAll(".regions")
+        .transition()
+        .duration(1000)
+        .style("fill", function(d){            
+            var value = d.properties[expressed];            
+            if(value) {                
+                return colorScale(value);           
+            } else {                
+                return "#ccc";            
+            }    
+    });
+
+//Example 1.10:
+
+    //Example 1.7 line 22...Sort, resize, and recolor bars
+    var bars = d3.selectAll(".bar")
+        //Sort bars
+        .sort(function(a, b){
+            return b[expressed] - a[expressed];
+        })
+        .transition() //add animation
+        .delay(function(d, i){
+            return i * 20
+        })
+        .duration(500);
+
+    updateChart(bars, csvData.length, colorScale);
+
+//Example 2.1: Adding a highlight() function in main.js
+//function to highlight enumeration units and bars
+function highlight(props){
+    //change stroke
+    var selected = d3.selectAll("." + props.adm1_code)
+        .style("stroke", "blue")
+        .style("stroke-width", "2");
+};
+
+//Example 2.2: Adding mouseover event listeners in main.js
+    //in setEnumerationUnits()...add France regions to map
+    var regions = map.selectAll(".regions")
+        .data(franceRegions)
+        .enter()
+        .append("path")
+        .attr("class", function(d){
+            return "regions " + d.properties.adm1_code;
+        })
+        .attr("d", path)
+        .style("fill", function(d){            
+            var value = d.properties[expressed];            
+            if(value) {                
+                return colorScale(value);            
+            } else {                
+                return "#ccc";            
+            }       
+         })
+        .on("mouseover", function(event, d){
+            highlight(d.properties);
+        });
+
+    //...
+
+    //in setChart()...set bars for each province
+    var bars = chart.selectAll(".bar")
+        .data(csvData)
+        .enter()
+        .append("rect")
+        .sort(function(a, b){
+            return b[expressed]-a[expressed]
+        })
+        .attr("class", function(d){
+            return "bar " + d.adm1_code;
+        })
+        .attr("width", chartInnerWidth / csvData.length - 1)
+        .on("mouseover", function(event, d){
+            highlight(d);
+        });

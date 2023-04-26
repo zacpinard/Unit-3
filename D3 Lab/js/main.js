@@ -5,6 +5,23 @@
 var attrArray = ["ELEPHANT", "LION", "LEOPARD", "BUFFALO", "RHINO","ID"]; //list of attributes
 var expressed = attrArray[0]; //initial attribute
 
+//chart frame dimensions
+var chartWidth = window.innerWidth * 0.425,
+    chartHeight = 473,
+    leftPadding = 25,
+    rightPadding = 2,
+    topBottomPadding = 5,
+    chartInnerWidth = chartWidth - leftPadding - rightPadding,
+    chartInnerHeight = chartHeight - topBottomPadding * 2,
+    translate = "translate(" + leftPadding + "," + topBottomPadding + ")";
+
+//create a scale to size bars proportionally to frame and for axis
+var yScale = d3.scaleLinear()
+    .range([463, 0])
+    .domain([0, 70000]);
+
+
+
 //begin script when window loads
 window.onload = setMap();
 
@@ -81,10 +98,78 @@ function setMap(){
         //add coordinated visualization to the map
         setChart(csvData, colorScale);
 
+        //add dropdown menu
+        createDropdown(csvData, colorScale)
     }
 }
 
-        
+//function to create a dropdown menu for attribute selection
+function createDropdown(){
+    //add select element
+    var dropdown = d3.select("body")
+        .append("select")
+        .attr("class", "dropdown")
+        .on("change", function(){
+            changeAttribute(this.value, csvData)
+        });
+
+    //add initial option
+    var titleOption = dropdown.append("option")
+        .attr("class", "titleOption")
+        .attr("disabled", "true")
+        .text("Select Attribute");
+    
+    var attrArray2 = ["ELEPHANT", "LION", "LEOPARD", "BUFFALO", "RHINO"]; //list of attributes
+
+    //add attribute name options
+    var attrOptions = dropdown.selectAll("attrOptions")
+        .data(attrArray2)
+        .enter()
+        .append("option")
+        .attr("value", function(d){ return d })
+        .text(function(d){ return d });
+};
+
+//dropdown change event handler
+function changeAttribute(attribute, csvData) {
+    //change the expressed attribute
+    expressed = attribute;
+
+    //recreate the color scale
+    var colorScale = makeColorScale(csvData);
+
+    //recolor enumeration units
+    var parks = d3.selectAll(".parks")
+        .transition()
+        .duration(1000)
+        .style("fill", function (d) {
+                var value = d.properties[expressed];
+                if (value) {
+                    return colorScale(d.properties[expressed]);
+                } else if (value == 0) {                
+                    return "#ffffff";            
+                } else {
+                    return "#ACADA8";   
+                }
+    });     
+
+    //Sort, resize, and recolor bars
+    var bars = d3.selectAll(".bar")
+        //Sort bars
+        .sort(function(a, b){
+            return b[expressed] - a[expressed];
+        })
+        .transition() //add animation
+        .delay(function(d, i){
+            return i * 60
+        })
+        .duration(500);
+
+    console.log(bars)
+       
+    updateChart(bars, csvData.length, colorScale);
+}
+
 function setGraticule(map, path){
     //create graticule generator
     var graticule = d3.geoGraticule()
@@ -147,9 +232,14 @@ function setEnumerationUnits(nationalParks, map, path, colorScale){
             var value = d.properties[expressed];
             if(value) {                
                 return colorScale(d.properties[expressed]);            
-            } else {                
-                return "#ACADA8";            
-            }    
+            } else if (value == 0) {                
+                return "#ffffff";            
+            } else{
+                return "#ACADA8";   
+            }
+        })
+        .on("mouseover", function(event, d){
+            highlight(d.properties);
         });
 
     //console.log(africanCountries)
@@ -196,15 +286,7 @@ function makeColorScale(data){
 
 //function to create coordinated bar chart
 function setChart(csvData, colorScale){
-    //chart frame dimensions
-    var chartWidth = window.innerWidth * 0.425,
-        chartHeight = 650;
-        leftPadding = 42,
-        rightPadding = 10,
-        topBottomPadding = 5,
-        chartInnerWidth = chartWidth - leftPadding - rightPadding,
-        chartInnerHeight = chartHeight - topBottomPadding * 2,
-        translate = "translate(" + leftPadding + "," + topBottomPadding + ")";
+    
 
     //create a second svg element to hold the bar chart
     var chart = d3.select("body")
@@ -219,7 +301,7 @@ function setChart(csvData, colorScale){
         .domain([0, 75000]);
 
     //set bars for each province
-    var bars = chart.selectAll(".bars")
+    var bars = chart.selectAll(".bar")
         .data(csvData)
         .enter()
         .append("rect")
@@ -227,7 +309,7 @@ function setChart(csvData, colorScale){
             return b[expressed]-a[expressed]
         })
         .attr("class", function(d){
-            return "bars d" + d.ID;
+            return "bar d" + d.ID;
         })
         .attr("width", chartInnerWidth / csvData.length - 1)
         .attr("x", function(d, i){
@@ -241,6 +323,9 @@ function setChart(csvData, colorScale){
         })
         .style("fill", function(d){
             return colorScale(d[expressed]);
+        })
+        .on("mouseover", function(event, d){
+            highlight(d);
         });
 
     //annotate bars with attribute value text
@@ -268,12 +353,6 @@ function setChart(csvData, colorScale){
             return d[expressed];
         });
 
-    var chartTitle = chart.append("text")
-        .attr("x", 50)
-        .attr("y", 28)
-        .attr("class", "chartTitle")
-        .text("Number of " + expressed + "S in each National Park");
-
     //create vertical axis generator
     var yAxis = d3.axisLeft()
         .scale(yScale);
@@ -284,9 +363,56 @@ function setChart(csvData, colorScale){
         .attr("transform", translate)
         .call(yAxis);
 
+    var chartTitle = chart.append("text")
+        .attr("x", 50)
+        .attr("y", 28)
+        .attr("class", "chartTitle")
+        .text("Number of " + expressed + "S in each National Park");
+
+    //set bar positions, heights, and colors
+    updateChart(bars, csvData.length, colorScale);    
 };
 
+//function to position, size, and color bars in chart
+function updateChart(bars, n, colorScale){
+    
+    //position bars
+    bars.attr("x", function(d, i){
+        return i * (chartInnerWidth / n) + leftPadding;
+        })
+        .attr("height", function(d, i){
+            if (isNaN(parseFloat(d[expressed])))
+                return chartHeight - yScale(0);
+            else
+                return chartHeight - yScale(parseFloat(d[expressed]));
+        })
+        .attr("y", function(d, i){
+            if (isNaN(parseFloat(d[expressed])))
+                return yScale(0) + topBottomPadding;
+            else
+                return yScale(parseFloat(d[expressed])) + topBottomPadding; 
+        })
+        .style("fill", function(d){            
+            var value = d[expressed];            
+            if(value) {                
+                return colorScale(value);            
+            } else if (value == 0) {                
+                return "#ffffff";            
+            } else{
+                return "#ACADA8";   
+            }    
+    });
 
+    var chartTitle = d3.select(".chartTitle")
+    .text("Number of " + expressed + "S in each National Park");
+};
+
+function highlight(props){
+    //change stroke
+    var selected = d3.selectAll("." + props.NationalPark)
+        .style("stroke", "gold")
+        .style("stroke-width", "2");
+};
 
 
 
