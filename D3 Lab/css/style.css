@@ -1,5 +1,9 @@
 /* Stylesheet by Zac Pinard, 2023 */
 
+body{
+    background-image: url(../assets/African_background3.jpg)
+}
+
 /* Styling country borders in style.css */
 .countries {
     fill: #FFD580;
@@ -55,7 +59,8 @@ title {
 }
 
 text {
-    font-family: Trebuchet;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    color: green
 }
 
 .chartTitle {
