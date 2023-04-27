@@ -8,7 +8,7 @@ var expressed = attrArray[0]; //initial attribute
 //chart frame dimensions
 var chartWidth = window.innerWidth * 0.425,
     chartHeight = 473,
-    leftPadding = 25,
+    leftPadding = 45,
     rightPadding = 2,
     topBottomPadding = 5,
     chartInnerWidth = chartWidth - leftPadding - rightPadding,
@@ -117,7 +117,7 @@ function createDropdown(){
     var titleOption = dropdown.append("option")
         .attr("class", "titleOption")
         .attr("disabled", "true")
-        .text("Select Attribute");
+        .text("Select Species");
     
     var attrArray2 = ["ELEPHANT", "LION", "LEOPARD", "BUFFALO", "RHINO"]; //list of attributes
 
@@ -128,6 +128,12 @@ function createDropdown(){
         .append("option")
         .attr("value", function(d){ return d })
         .text(function(d){ return d });
+
+    var top = document.querySelector(".map").getBoundingClientRect().top + 20,
+        left =  document.querySelector(".map").getBoundingClientRect().left;
+        document.querySelector(".dropdown").style.top = top + "px";
+
+    console.log(document.querySelector(".dropdown"))
 };
 
 //dropdown change event handler
@@ -144,12 +150,12 @@ function changeAttribute(attribute, csvData) {
         .duration(1000)
         .style("fill", function (d) {
                 var value = d.properties[expressed];
-                if (value) {
-                    return colorScale(d.properties[expressed]);
+                if (value == -1) {
+                    return "#ACADA8"; 
                 } else if (value == 0) {                
                     return "#ffffff";            
                 } else {
-                    return "#ACADA8";   
+                    return colorScale(d.properties[expressed]);  
                 }
     });     
 
@@ -230,12 +236,12 @@ function setEnumerationUnits(nationalParks, map, path, colorScale){
         .attr("d", path)
         .style("fill", function(d){
             var value = d.properties[expressed];
-            if(value) {                
-                return colorScale(d.properties[expressed]);            
+            if (value == -1) {
+                return "#ACADA8"; 
             } else if (value == 0) {                
                 return "#ffffff";            
-            } else{
-                return "#ACADA8";   
+            } else {
+                return colorScale(d.properties[expressed]);  
             }
         })
         .on("mouseover", function(event, d){
@@ -246,7 +252,7 @@ function setEnumerationUnits(nationalParks, map, path, colorScale){
         })
         .on("mousemove", moveLabel);
         var desc = parks.append("desc")
-            .text('{"stroke": "#000", "stroke-width": "0.5px"}')
+            .text('{"stroke": "#6a4a3a", "stroke-width": "2px"}')
 
     //console.log(africanCountries)
     console.log(nationalParks)
@@ -301,11 +307,6 @@ function setChart(csvData, colorScale){
         .attr("height", chartHeight)
         .attr("class", "chart");
 
-    //create a scale to size bars proportionally to frame
-    var yScale = d3.scaleLinear()
-        .range([chartHeight,0])
-        .domain([0, 75000]);
-
     //set bars for each province
     var bars = chart.selectAll(".bar")
         .data(csvData)
@@ -322,7 +323,7 @@ function setChart(csvData, colorScale){
             return i * (chartInnerWidth / csvData.length) + leftPadding;
         })
         .attr("height", function(d, i){
-            return chartHeight - yScale(parseFloat(d[expressed]));
+            return chartInnerHeight - yScale(parseFloat(d[expressed]));
         })
         .attr("y", function(d, i){
             return yScale(parseFloat(d[expressed])) + topBottomPadding;
@@ -333,7 +334,7 @@ function setChart(csvData, colorScale){
         .on("mouseover", function(event, d){
             highlight(d);
         })
-        .on("mouseover", function(event, d){
+        .on("mouseout", function(event, d){
             dehighlight(d);
         })
         .on("mousemove", moveLabel);
@@ -341,7 +342,7 @@ function setChart(csvData, colorScale){
         .text('{"stroke": "none", "stroke-width": "0px"}');
 
     //annotate bars with attribute value text
-    var numbers = chart.selectAll(".numbers")
+   /* var numbers = chart.selectAll(".numbers")
         .data(csvData)
         .enter()
         .append("text")
@@ -363,7 +364,7 @@ function setChart(csvData, colorScale){
         })
         .text(function(d){
             return d[expressed];
-        });
+        });*/
 
     //create vertical axis generator
     var yAxis = d3.axisLeft()
@@ -376,7 +377,7 @@ function setChart(csvData, colorScale){
         .call(yAxis);
 
     var chartTitle = chart.append("text")
-        .attr("x", 50)
+        .attr("x", 100)
         .attr("y", 28)
         .attr("class", "chartTitle")
         .text("Number of " + expressed + "S in each National Park");
@@ -394,9 +395,9 @@ function updateChart(bars, n, colorScale){
         })
         .attr("height", function(d, i){
             if (isNaN(parseFloat(d[expressed])))
-                return chartHeight - yScale(0);
+                return chartInnerHeight - yScale(0);
             else
-                return chartHeight - yScale(parseFloat(d[expressed]));
+                return chartInnerHeight - yScale(parseFloat(d[expressed]));
         })
         .attr("y", function(d, i){
             if (isNaN(parseFloat(d[expressed])))
@@ -420,7 +421,7 @@ function updateChart(bars, n, colorScale){
 };
 
 function highlight(props){
-    //change stroke
+    console.log('hello')//change stroke
     var selected = d3.selectAll(".d" + props.ID)
         .style("stroke", "#E31B23")
         .style("stroke-width", "2");
@@ -446,6 +447,9 @@ function dehighlight(props){
 
         return styleObject[styleName];
     };
+
+    d3.select(".infolabel")
+        .remove();
 };
 
 //function to create dynamic label
@@ -490,13 +494,3 @@ function moveLabel(){
 };
 
 })(); //finished wrapping everything
-
-
-//Issues: 1) No more gray for no data
-//        2) Park outlines change after highlight and dehighlight
-//        3) There is still a dynamic label in the bottom left
-//        4) Need to add Zoom and Pan to better incorporate smaller national parks
-//        5) Why are there strikethroughs for "event"?
-//        6) Dynamic labels for bars no longer update
-//        7) Map updates slowly
-//        8) Regular population labels for bars are stagnant
