@@ -15,7 +15,7 @@
 
 .gratLines {
     fill: none;
-    stroke: #999;
+    stroke: #171010;
     stroke-width: 1px;
 }
 
@@ -27,6 +27,7 @@
     border: medium solid #355E3B;
     border-width: 5px;
     margin: 10px 0 0 10px;
+    background-color: #0e87cc
 }
 
 .chart {
@@ -45,11 +46,17 @@
 
 @font-face {
     font-family: 'Tribeca';
-    src: URL('\assets\tribeca\Tribeca.ttf') format('truetype');
+    src: URL('/assets/tribeca/Tribeca.ttf') format('truetype');
     color: darkgreen;
   }
 
-.title
+title { 
+    font-family: Tribeca,sans-serif;
+}
+
+text {
+    font-family: Trebuchet;
+}
 
 .chartTitle {
     font-family: sans-serif;

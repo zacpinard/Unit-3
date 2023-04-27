@@ -479,7 +479,7 @@ function moveLabel(){
         .width;
     //use coordinates of mousemove event to set label coordinates
     var x = event.clientX + 10,
-        y = event.clientY - 75
+        y = event.clientY - 75 + window.scrollY
         x2 = event.clientX - labelWidth - 10,
         y2 = event.clientY + 25;
 
